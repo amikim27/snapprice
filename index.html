@@ -413,7 +413,12 @@
             </p>
             <div class="cta">
                     <a href="mailto:growth@snapprice.live">이메일 보내기</a>
- 
+ <script>
+document.getElementById("emailBtn").addEventListener("click", function(e){
+    e.preventDefault();
+    window.location.href = "mailto:growth@snapprice.live";
+});
+</script>
             </div>
         </header>
 
@@ -608,6 +613,7 @@
     </script>
 </body>
 </html>
+
 
 
 
