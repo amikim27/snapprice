@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>SnapPrice · Open Marketplace Price Monitoring</title>
+
+    <!-- =============================== SEO META =============================== -->
+    <meta name="description" content="SnapPrice는 Qoo10, 아마존, 쇼피 등 오픈마켓 상품 가격을 24시간 모니터링하고 가격 변동 시 텔레그램으로 즉시 알림을 제공하는 가격 감시 서비스입니다.">
+    <meta name="keywords" content="가격 모니터링, 가격 추적, 오픈마켓 가격감시, Qoo10 가격변동, 아마존 가격 추적, 쇼피 가격 감시, 텔레그램 알림, 셀러 도구">
+    <meta name="author" content="SnapPrice">
+    <link rel="canonical" href="https://snapprice.co.kr">
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="SnapPrice | 오픈마켓 가격 모니터링 자동화">
+    <meta property="og:description" content="수천 개 상품 가격 변동을 24시간 자동 감시하고 텔레그램으로 가장 빠르게 알려드립니다.">
+    <meta property="og:url" content="https://snapprice.co.kr">
+    <meta property="og:image" content="https://snapprice.co.kr/og-image.png">
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="SnapPrice | 오픈마켓 가격 감시">
+    <meta name="twitter:description" content="가격 변동을 가장 빠르게 알려주는 오픈마켓 가격 모니터링 서비스">
+    <meta name="twitter:image" content="https://snapprice.co.kr/og-image.png">
+
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "SnapPrice",
+      "applicationCategory": "BusinessApplication",
+      "operatingSystem": "Web",
+      "description": "오픈마켓 상품 가격을 24시간 모니터링하고 텔레그램으로 알림을 제공하는 서비스",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "KRW"
+      }
+    }
+    </script>
+
+    <!-- Tailwind CSS & Lucide Icons -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', system-ui, sans-serif;
+        }
+
+        body {
+            background: #f8fafc;
+            color: #0f172a;
+            overflow-x: hidden;
+        }
+
+        /* ===============================
+            Floating Background
+        =============================== */
+        .bg {
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        .float {
+            position: absolute;
+            opacity: 0.26;
+            filter: grayscale(100%);
+            animation-timing-function: linear;
+            animation-iteration-count: infinite;
+        }
+
+        .float img {
+            width: 190px;
+        }
+
+        .float.qoo10 {
+            opacity: 0.42;
+            filter: none;
+        }
+
+        .float.qoo10 img {
+            transform: scale(1.12);
+        }
+
+        /* Positions + speeds */
+        .f1 { top: 5%;  left: 3%;  animation: drift1 18s infinite alternate; }
+        .f2 { top: 40%; left: 8%;  animation: drift2 22s infinite alternate; }
+        .f3 { top: 70%; left: 2%;  animation: drift3 26s infinite alternate; }
+        .f4 { top: 10%; right: 4%; animation: drift4 20s infinite alternate; }
+        .f5 { top: 45%; right: 10%;animation: drift5 24s infinite alternate; }
+        .f6 { bottom: 8%; right: 20%;animation: drift6 30s infinite alternate; }
+        .f7 { top: 25%; left: 35%;animation: drift7 34s infinite alternate; }
+        .f8 { bottom: 15%; left: 50%;animation: drift8 28s infinite alternate; }
+
+        @keyframes drift1 { from { transform: translate(0,0) rotate(0deg); } to { transform: translate(280px,-220px) rotate(6deg); } }
+        @keyframes drift2 { from { transform: translate(0,0) rotate(0deg); } to { transform: translate(-260px,-180px) rotate(-6deg); } }
+        @keyframes drift3 { from { transform: translate(0,0) rotate(0deg); } to { transform: translate(220px,-260px) rotate(5deg); } }
+        @keyframes drift4 { from { transform: translate(0,0) rotate(0deg); } to { transform: translate(-300px,160px) rotate(-5deg); } }
+        @keyframes drift5 { from { transform: translate(0,0) rotate(0deg); } to { transform: translate(-260px,-200px) rotate(7deg); } }
+        @keyframes drift6 { from { transform: translate(0,0) rotate(0deg); } to { transform: translate(-340px,120px) rotate(-6deg); } }
+        @keyframes drift7 { from { transform: translate(0,0) rotate(0deg); } to { transform: translate(180px,220px) rotate(4deg); } }
+        @keyframes drift8 { from { transform: translate(0,0) rotate(0deg); } to { transform: translate(-220px,-180px) rotate(-4deg); } }
+
+        /* ===============================
+            Phone & Telegram UI Custom
+        =============================== */
+        .phone {
+            width: 380px;
+            height: 720px;
+            border-radius: 40px;
+            background: #111;
+            padding: 12px;
+            box-shadow: 0 40px 100px rgba(0,0,0,0.3);
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .telegram-screen {
+            height: 100%;
+            background-color: #DBE7D6;
+            background-image: url("https://www.transparenttextures.com/patterns/cubes.png");
+            background-blend-mode: multiply;
+            border-radius: 32px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .message-bubble {
+            background-color: #ffffff;
+            box-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
+            position: relative;
+            border-radius: 12px;
+            border-top-left-radius: 4px;
+        }
+
+        /* Message tail */
+        .message-bubble::before {
+            content: '';
+            position: absolute;
+            left: -6px;
+            top: 0;
+            width: 8px;
+            height: 8px;
+            background-color: #ffffff;
+            clip-path: polygon(100% 0, 0 0, 100% 100%);
+        }
+
+        .link-preview {
+            border-left: 2px solid #52A3DB;
+            background-color: #f5f8fa;
+        }
+
+        .share-btn {
+            background-color: rgba(0, 0, 0, 0.15);
+            backdrop-filter: blur(4px);
+        }
+
+        /* ===============================
+            Layout Basics
+        =============================== */
+        .container {
+            max-width: 1040px;
+            margin: 0 auto;
+            padding: 80px 24px;
+        }
+
+        header { margin-bottom: 80px; }
+        .badge { font-size: 0.75rem; padding: 6px 10px; border-radius: 999px; background: #e2e8f0; display: inline-block; margin-bottom: 16px; }
+        h0 { font-size: 2.8rem; font-weight: 600; line-height: 1.2; margin-bottom: 24px; letter-spacing: -0.02em; }
+        .subtitle { font-size: 1.1rem; color: #475569; max-width: 560px; line-height: 1.6; }
+        .cta { margin-top: 40px; }
+        .cta a { padding: 14px 28px; background: #0f172a; color: #fff; border-radius: 12px; text-decoration: none; font-size: 1rem; font-weight: 500; transition: transform 0.2s; display: inline-block; }
+        .cta a:hover { transform: translateY(-2px); }
+
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; margin-top: 80px; }
+        .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 20px; padding: 40px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+
+        footer { margin-top: 100px; padding: 40px 0; border-top: 1px solid #e5e7eb; font-size: 0.85rem; color: #94a3b8; text-align: center; }
+/* ===============================
+   Pricing Table
+================================ */
+
+.pricing {
+  margin-top: 160px;
+}
+
+.pricing h2 {
+  font-size: 2rem;
+  font-weight: 500;
+  margin-bottom: 12px;
+}
+
+.pricing-desc {
+  color: #64748b;
+  margin-bottom: 48px;
+}
+
+.pricing-table {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 24px;
+  overflow: hidden;
+}
+
+.pricing-table .row {
+  display: grid;
+  grid-template-columns: 1.2fr repeat(5, 1fr);
+  padding: 20px 20px;
+  align-items: center;
+  font-size: 0.9rem;
+  border-bottom: 1px solid #e5e7eb;
+
+}
+
+.pricing-table .row.head {
+  background: #fff;
+  font-weight: 500;
+}
+
+.pricing-table .row.alt {
+  background: #fff;
+}
+
+.pricing-table .row > div {
+  text-align: center;
+}
+
+.pricing-table .row > div:first-child {
+  text-align: left;
+  color: #0f172a;
+  font-weight: 800;
+}
+
+.pricing-table small {
+  font-size: 0.7rem;
+  color: #94a3b8;
+}
+
+/* Highlight (Light plan) */
+.pricing-table .highlight {
+  background: #f1f5ff;
+  border-radius: 14px;
+  padding: 10px 6px;
+  font-weight: 500;
+}
+
+.pricing-table .highlight span {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 0.65rem;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #0f172a;
+  color: #fff;
+}
+
+    </style>
+</head>
+
+<body>
+
+    <!-- FLOATING LOGOS -->
+    <div class="bg text-gray-300">
+        <div class="float f1 qoo10"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/Qoo10_logo.svg/1280px-Qoo10_logo.svg.png"></div>
+        <div class="float f2"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Amazon_logo.svg/960px-Amazon_logo.svg.png"></div>
+        <div class="float f3"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/Rakuten_Global_Brand_Logo.svg/960px-Rakuten_Global_Brand_Logo.svg.png"></div>
+        <div class="float f4"><img src="https://upload.wikimedia.org/wikipedia/commons/f/fe/Shopee.svg"></div>
+        <div class="float f5"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Amazon_logo.svg/960px-Amazon_logo.svg.png"></div>
+        <div class="float f6 qoo10"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/Qoo10_logo.svg/1280px-Qoo10_logo.svg.png"></div>
+        <div class="float f7"><img src="https://upload.wikimedia.org/wikipedia/commons/f/fe/Shopee.svg"></div>
+        <div class="float f8"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/Rakuten_Global_Brand_Logo.svg/960px-Rakuten_Global_Brand_Logo.svg.png"></div>
+    </div>
+
+    <div class="container">
+        <header>
+
+        <div class="flex items-center gap-3 mb-6">
+            <img src="logo_800x150.png" alt="SnapPrice Logo" class="h-32 w-auto">
+         </div>
+
+
+             <h1 class="text-[3.6rem] md:text-[3.2rem] font-extrabold leading-tight tracking-tight">
+오픈마켓 가격을<br>24시간 감지합니다</h1>
+            <p class="subtitle"><br>
+                이제 수천 개의 상품 가격 변동을 <br> Bot이 대신 감시하고, <br>
+                가격변동이 발생하면 텔레그램으로 가장 빠르게 알려드립니다.
+            </p>
+            <div class="cta">
+                <a href="#">서비스 시작하기</a>
+            </div>
+        </header>
+
+        <section class="grid">
+            <div class="card">
+                <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-6"><i data-lucide="monitor" class="text-blue-600"></i></div>
+                <h3 class="font-bold mb-2">초당, 분당, 시간당 감시 시스템</h3>
+                <p class="text-gray-500 text-sm">Qoo10, 아마존, 쇼피 등 모든 오픈마켓을 지원합니다</p>
+            </div>
+            <div class="card">
+                <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-6"><i data-lucide="bell" class="text-green-600"></i></div>
+                <h3 class="font-bold mb-2">언제 어디서나 간편한 모바일 알림</h3>
+                <p class="text-gray-500 text-sm">미팅중에도, 티비볼때도, 가격걱정에서 자유로워져요</p>
+            </div>
+            <div class="card">
+                <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-6"><i data-lucide="users" class="text-purple-600"></i></div>
+                <h3 class="font-bold mb-2">저렴한 한달 이용료</h3>
+                <p class="text-gray-500 text-sm">5개 상품감시부터 무제한 상품감시까지 인건비보다 저렴하게 이용하세요</p>
+            </div>
+            <div class="card">
+                <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-6"><i data-lucide="users" class="text-purple-600"></i></div>
+                <h3 class="font-bold mb-2">한국어 자동번역</h3>
+                <p class="text-gray-500 text-sm">해외플랫폼도 어렵지 않게 도와드려요</p>
+            </div>
+        </section>
+
+        <!-- PHONE UI SECTION -->
+        <section class="mt-32 text-center">
+            <h2 class="text-2xl font-bold mb-12">서비스 미리보기</h2>
+
+            <div class="phone">
+                <!-- Inner Screen -->
+                <div class="telegram-screen">
+                    <!-- iOS/Android Status Bar -->
+                    <div class="bg-white/90 backdrop-blur px-6 py-1 flex justify-between items-center text-[11px] font-bold z-30">
+                        <span>7:11</span>
+                        <div class="flex gap-1 items-center">
+                            <i data-lucide="signal" class="w-3 h-3"></i>
+                            <i data-lucide="wifi" class="w-3 h-3"></i>
+                            <i data-lucide="battery" class="w-3.5 h-3.5"></i>
+                        </div>
+                    </div>
+
+                    <!-- App Header -->
+                    <header class="bg-white/95 px-4 py-2 flex items-center justify-between border-b border-gray-100 z-20 m-0 rounded-none shadow-none">
+                        <div class="flex items-center gap-3 text-left">
+                            <i data-lucide="chevron-left" class="text-[#52A3DB] w-6 h-6"></i>
+                            <div class="w-9 h-9 rounded-full bg-[#52A3DB] flex items-center justify-center text-white font-bold text-lg">S</div>
+                            <div class="flex flex-col">
+                                <h4 class="font-bold text-gray-800 text-[14px]">SnapPrice Bot</h4>
+                                <p class="text-[11px] text-[#52A3DB]">online</p>
+                            </div>
+                        </div>
+                        <i data-lucide="more-vertical" class="text-[#52A3DB] w-5 h-5"></i>
+                    </header>
+
+                    <!-- Chat Body -->
+                    <div class="flex-1 overflow-y-auto p-3 space-y-4 text-left scrollbar-hide">
+                        
+                        <!-- Message 1: AirPods -->
+                        <div class="flex items-end gap-2 max-w-[95%]">
+                            <div class="message-bubble p-3 w-full">
+                                <div class="text-[13px] leading-relaxed text-gray-800 space-y-0.5">
+                                    <p><strong>브랜드명 :</strong> [스킨푸드]</p>
+                                    <p><strong>상품명 :</strong>캐롯 카로틴 카밍 패드, 60매 </p>
+                                    <p><strong>변경시간 :</strong> 14:21</p>
+                                    <p class="font-bold text-red-600">가격변동 : ▶ 1713円</p>
+                                    <p class="text-blue-500 underline text-[12px] truncate">https://www.qoo10.jp/gmkt.inc/catalog/goods/goods.aspx?catalogno=5944</p>
+                                </div>
+                                <div class="mt-3 link-preview rounded-r-lg p-2 flex gap-3">
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-[10px] font-bold text-blue-500 uppercase">Qoo10</p>
+                                        <p class="text-[12px] font-bold text-gray-900 truncate">キャロットカロテンカーミングウォーターパッド, 60枚</p>
+                                        <p class="text-[10px] text-gray-600 mt-1 line-clamp-1">Price Changed</p>
+                                    </div>
+                                    <div class="w-12 h-12 bg-gray-100 rounded border border-gray-200 flex-shrink-0 flex items-center justify-center">
+                                        <img src="pr_example01.avif">
+                                    </div>
+                                </div>
+                                <div class="flex justify-end mt-1"><span class="text-[10px] text-gray-400">14:21</span></div>
+                            </div>
+                            <div class="share-btn w-7 h-7 rounded-full flex items-center justify-center text-white flex-shrink-0">
+                                <i data-lucide="corner-up-right" class="w-3.5 h-3.5"></i>
+                            </div>
+                        </div>
+
+                        <!-- Message 2: Nike -->
+                       <div class="flex items-end gap-2 max-w-[95%]">
+                            <div class="message-bubble p-3 w-full">
+                                <div class="text-[13px] leading-relaxed text-gray-800 space-y-0.5">
+                                    <p><strong>브랜드명 :</strong> [조선미녀]</p>
+                                    <p><strong>상품명 :</strong>붉은팥 모공정화 마스크, 140ml </p>
+                                    <p><strong>변경시간 :</strong> 14:23</p>
+                                    <p class="font-bold text-red-600">가격변동 : ▶ 1881円</p>
+                                    <p class="text-blue-500 underline text-[12px] truncate">https://www.qoo10.jp/gmkt.inc/catalog/goods/goods.aspx?catalogno=18093/p>
+                                </div>
+                                <div class="mt-3 link-preview rounded-r-lg p-2 flex gap-3">
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-[10px] font-bold text-blue-500 uppercase">Qoo10</p>
+                                        <p class="text-[12px] font-bold text-gray-900 truncate">赤小豆毛穴マスク, 140ml</p>
+                                        <p class="text-[10px] text-gray-600 mt-1 line-clamp-1">Price Changed</p>
+                                    </div>
+                                    <div class="w-12 h-12 bg-gray-100 rounded border border-gray-200 flex-shrink-0 flex items-center justify-center">
+                                        <img src="pr_example02.webp">
+                                    </div>
+                                </div>
+                                <div class="flex justify-end mt-1"><span class="text-[10px] text-gray-400">14:21</span></div>
+                            </div>
+                            <div class="share-btn w-7 h-7 rounded-full flex items-center justify-center text-white flex-shrink-0">
+                                <i data-lucide="corner-up-right" class="w-3.5 h-3.5"></i>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Input Footer -->
+                    <footer class="bg-white/95 backdrop-blur p-2 flex items-center gap-2 border-t border-gray-100 m-0">
+                        <i data-lucide="paperclip" class="w-6 h-6 text-[#52A3DB]"></i>
+                        <div class="flex-1 bg-gray-100 rounded-full px-4 py-1.5 flex items-center gap-2 border border-gray-200">
+                            <span class="text-sm text-gray-400 flex-1">메시지</span>
+                            <i data-lucide="smile" class="w-5 h-5 text-gray-400"></i>
+                        </div>
+                        <div class="bg-[#52A3DB] rounded-full p-2 text-white shadow-md">
+                            <i data-lucide="mic" class="w-5 h-5"></i>
+                        </div>
+                    </footer>
+                </div>
+            </div>
+        </section>
+<section class="pricing">
+  <h2><strong>요금제</strong></h2>
+  <p class="pricing-desc">판매자님의 샵에 맞는 플랜을 선택할 수 있어요</p>
+
+  <div class="pricing-table">
+    <div class="row head">
+      <div></div>
+      <div>FREE<br><small>3 Days</small></div>
+      <div>Beginner<br> <small>1 Month</small></div>
+      <div class="highlight">
+        Light
+        <span>추천</span><br> <small>1 Month</small>
+      </div>
+      <div>Medium<br> <small>1 Month</small> </div>
+      <div>Heavy<br> <small>1 Month</small> </div>
+    </div>
+
+    <div class="row">
+      <div>가격</div>
+      <div>0 KRW<br></div>
+      <div>30,000 KRW</div>
+      <div class="highlight">100,000 KRW</div>
+      <div>500,000 KRW</div>
+      <div>문의</div>
+    </div>
+
+    <div class="row alt">
+      <div>상품 수</div>
+      <div>1개</div>
+      <div>3개</div>
+      <div class="highlight">10개</div>
+      <div>50개</div>
+      <div>무제한</div>
+    </div>
+
+    <div class="row">
+      <div>봇 활동 주기</div>
+      <div>5분</div>
+      <div>1시간</div>
+      <div class="highlight">30분</div>
+      <div>5분</div>
+      <div>10초</div>
+    </div>
+
+    <div class="row alt">
+      <div>알림 제한</div>
+      <div>월 10건</div>
+      <div>월 100건</div>
+      <div class="highlight">월 1,000건</div>
+      <div>무제한</div>
+      <div>무제한</div>
+    </div>
+  </div>
+</section>
+            <div class="cta"><center>
+                <a href="#">도입 문의하기</a></center>
+            </div>
+        <footer>© 2026 SnapPrice · All Rights Reserved.</footer>
+    </div>
+
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>
