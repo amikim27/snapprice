@@ -1,3 +1,4 @@
 User-agent: *
 Allow: /
-Sitemap: https://snapprice.co.kr/sitemap.xml
+Sitemap: https://snapprice.live/sitemap.xml
+
